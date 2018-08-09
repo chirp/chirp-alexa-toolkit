@@ -1,0 +1,23 @@
+{
+  "name": "alexa_toolkit",
+  "version": "1.0.0",
+  "description": "Alexa Toolkit",
+  "main": "index.js",
+  "dependencies": {
+    "alexa-sdk": "^1.0.25"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chirp/chirp-alexa-toolkit.git"
+  },
+  "author": "ASIO Ltd",
+  "license": "All rights reserved",
+  "bugs": {
+    "url": "https://github.com/chirp/chirp-alexa-toolkit/issues"
+  },
+  "homepage": "https://github.com/chirp/chirp-alexa-toolkit#readme"
+}

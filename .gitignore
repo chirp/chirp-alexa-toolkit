@@ -1,0 +1,9 @@
+build
+.DS_Store
+.idea
+*.zip
+nodejs/.idea
+nodejs/node_modules
+python/.idea
+python/requests
+python/requests-*

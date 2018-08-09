@@ -127,6 +127,8 @@ In the [same repository you cloned before](https://github.com/chirp/chirp-alexa-
 
 Note that, in this demo, we’re not encrypting credentials so they are sent in plain text (as you can see from the Lambda function). This means that any devices that are in the hearing range will be able to hear and decode the credentials using a Chirp-enabled receiving device. For secure transmission, your credentials could be secured within your app with the addition of cryptography such as RSA or AES, along with a key that is unique to your client’s credentials.
 
+Before installing the app you have to download Chirp Android SDK from the [admin.chirp.io](https://admin.chirp.io). After downloading is finished, unzip the package, copy the *chirp-connect-release.aar* file in to the app/libs folder from the Chirp Wi-Fi Share Android client app.
+
 In order to install the client app, open the project in Android Studio, open “MainActivity.java”, update the Chirp credentials with your key and secret, and build the app on the phone.
 
 ```

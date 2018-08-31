@@ -24,6 +24,7 @@ import java.util.List;
 
 import io.chirp.connect.ChirpConnect;
 import io.chirp.connect.interfaces.ConnectEventListener;
+import io.chirp.connect.interfaces.ConnectSetConfigListener;
 import io.chirp.connect.models.ChirpError;
 import io.chirp.connect.models.ConnectState;
 
@@ -44,73 +45,120 @@ public class MainActivity extends AppCompatActivity {
 
         status = findViewById(R.id.status);
         startStopListeningBtn = findViewById(R.id.startStopListening);
-
+        context = this;
+        startStopListeningBtn.setAlpha(.4f);
+        startStopListeningBtn.setClickable(false);
         /*
-        You can download licence string and credentials from your admin panel at admin.chirp.io
+        You can download config string and credentials from your admin panel at developers.chirp.io
          */
         String KEY = "YOUR_APP_KEY";
         String SECRET = "YOUR_APP_SECRET";
-        String LICENCE = "YOUR_APP_LICENCE";
+        String CONFIG = "YOUR_APP_CONFIG_STRING";
 
         chirpConnect = new ChirpConnect(this, KEY, SECRET);
-        ChirpError setLicenceError = chirpConnect.setLicence(LICENCE);
-        if (setLicenceError.getCode() > 0) {
-            Log.e("ChirpError:", setLicenceError.getMessage());
-        }
-
-        context = this;
-
-        chirpConnect.setListener(new ConnectEventListener() {
-
-            @Override
-            public void onSent(byte[] payload) {
-                Log.v("chirpConnectDemoApp", "This is called when a payload has been sent " + chirpConnect.payloadToHexString(payload));
-            }
-
-            @Override
-            public void onSending(byte[] payload) {
-                Log.v("chirpConnectDemoApp", "This is called when a payload is being sent " + chirpConnect.payloadToHexString(payload));
-            }
-
-            @Override
-            public void onReceived(byte[] payload) {
-                Log.v("chirpConnectDemoApp", "This is called when a payload has been received " + chirpConnect.payloadToHexString(payload));
-                try {
-                    String credentialsString = new String(payload, "UTF-8");
-                    List<String> credentialsList = Arrays.asList(credentialsString.split(":"));
-                    String networkSSID = credentialsList.get(0);
-                    String networkPass = credentialsList.get(1);
-                    setStatus("Searching for the network...");
-                    connectToWifi(networkSSID, networkPass);
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                    setStatus("Received data but unable to decode credentials...");
-                }
-            }
-
-            @Override
-            public void onReceiving() {
-                Log.v("chirpConnectDemoApp", "This is called when the SDK is expecting a payload to be received");
-                setStatus("Receiving...");
-            }
-
-            @Override
-            public void onStateChanged(byte oldState, byte newState) {
-                Log.v("chirpConnectDemoApp", "This is called when the SDK state has changed " + oldState + " -> " + newState);
-                ConnectState state = ConnectState.createConnectState(newState);
-                if (state == ConnectState.AudioStateRunning) {
-                    setStatus("Listening...");
-                }
-            }
-
-            @Override
-            public void onSystemVolumeChanged(int old, int current) {
-                Log.d("chirpConnectDemoApp", "This is called when the Android system volume has changed " + old + " -> " + current);
-            }
-
-        });
+        chirpConnect.setConfig(CONFIG, connectSetConfigListener);
+        chirpConnect.setListener(connectEventListener);
 
     }
+
+    ConnectSetConfigListener connectSetConfigListener = new ConnectSetConfigListener() {
+        @Override
+        public void onSuccess() {
+            //The config is successfully set, we can enable Start/Stop button now
+            startStopListeningBtn.setAlpha(1f);
+            startStopListeningBtn.setClickable(true);
+        }
+
+        @Override
+        public void onError(ChirpError setConfigError) {
+            Log.e("SetConfigError", setConfigError.getMessage());
+            setStatus("SetConfigError\n" + setConfigError.getMessage());
+        }
+    };
+
+    ConnectEventListener connectEventListener = new ConnectEventListener() {
+
+        @Override
+        public void onSending(byte[] payload, byte channel) {
+            /**
+             * onSending is called when a send event begins.
+             * The data argument contains the payload being sent.
+             */
+            String hexData = "null";
+            if (payload != null) {
+                hexData = chirpConnect.payloadToHexString(payload);
+            }
+            Log.v("connectdemoapp", "ConnectCallback: onSending: " + hexData + " on channel: " + channel);
+        }
+
+        @Override
+        public void onSent(byte[] payload, byte channel) {
+            /**
+             * onSent is called when a send event has completed.
+             * The data argument contains the payload that was sent.
+             */
+            String hexData = "null";
+            if (payload != null) {
+                hexData = chirpConnect.payloadToHexString(payload);
+            }
+            Log.v("connectdemoapp", "ConnectCallback: onSent: " + hexData + " on channel: " + channel);
+        }
+
+        @Override
+        public void onReceiving(byte channel) {
+            /**
+             * onReceiving is called when a receive event begins.
+             * No data has yet been received.
+             */
+            Log.v("connectdemoapp", "ConnectCallback: onReceiving on channel: " + channel);
+            setStatus("Receiving...");
+        }
+
+        @Override
+        public void onReceived(byte[] payload, byte channel) {
+            /**
+             * onReceived is called when a receive event has completed.
+             * If the payload was decoded successfully, it is passed in data.
+             * Otherwise, data is null.
+             */
+            String hexData = "null";
+            if (payload != null) {
+                hexData = chirpConnect.payloadToHexString(payload);
+            }
+            Log.v("connectdemoapp", "ConnectCallback: onReceived: " + hexData + " on channel: " + channel);
+
+            try {
+                String credentialsString = new String(payload, "UTF-8");
+                List<String> credentialsList = Arrays.asList(credentialsString.split(":"));
+                String networkSSID = credentialsList.get(0);
+                String networkPass = credentialsList.get(1);
+                setStatus("Searching for the network...");
+                connectToWifi(networkSSID, networkPass);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+                setStatus("Received data but unable to decode credentials...");
+            }
+        }
+
+        @Override
+        public void onStateChanged(byte oldState, byte newState) {
+            /**
+             * onStateChanged is called when the SDK changes state.
+             */
+            Log.v("connectdemoapp", "ConnectCallback: onStateChanged " + oldState + " -> " + newState);
+            ConnectState state = ConnectState.createConnectState(newState);
+            if (state == ConnectState.AudioStateRunning) {
+                setStatus("Listening...");
+            }
+
+        }
+
+        @Override
+        public void onSystemVolumeChanged(int oldVolume, int newVolume) {
+            Log.v("connectdemoapp", "System volume has been changed, notify user to increase the volume when sending data");
+        }
+
+    };
 
     public void learnMore(View view) {
         Intent intent= new Intent(Intent.ACTION_VIEW, Uri.parse("https://chirp.io"));

@@ -21,7 +21,7 @@ Before starting, make sure you have these requirements installed on your machine
 - Node and npm if you prefer to use Nodejs for lambda function
 - Python 2.7 or higher and pip if you prefer to use Python for lambda function
 - Lambda function code samples repository <https://github.com/chirp/chirp-alexa-toolkit>
-- Chirp developer account. You can sign up at [admin.chirp.io](https://admin.chirp.io)
+- Chirp developer account. You can sign up at [developers.chirp.io](https://developers.chirp.io)
 - Amazon developer account for [Alexa](https://developer.amazon.com/alexa) and AWS Lambda
 - Android studio to build the demo app on a device
 
@@ -77,7 +77,7 @@ Next, scroll down to configure the Alexa Skill Kit trigger and paste the Skill I
 
 ![img](https://cdn-images-1.medium.com/max/1600/1*6e4GmudCOwZGwoyoC7SSzQ.jpeg)Configure Lambda function — set-up trigger skill id
 
-Next, we need to clone code samples for the Lambda function from the C[hirp Alexa Toolkit GitHub repository](https://github.com/chirp/chirp-alexa-toolkit). 
+Next, we need to clone code samples for the Lambda function from the C[hirp Alexa Toolkit GitHub repository](https://github.com/chirp/chirp-alexa-toolkit).
 
 ```
 git clone git@github.com:chirp/chirp-alexa-toolkit.git
@@ -87,7 +87,7 @@ Next, before uploading the function, we need to provide credentials for the Chir
 
 For node.js open nodejs/index.js, for python open python/lambda_function.py, and update the following constants:
 
-- APP_KEY and APP_SECRET — represents Chirp credentials from <https://admin.chirp.io>
+- APP_KEY and APP_SECRET — represents Chirp credentials from <https://developers.chirp.io>
 - APP_ID — represents your Alexa Skill application id that we copied in previous steps
 - WIFI_SSID and WIFI_PASSWORD — represents your WiFi network name and password that you want to connect to. For the sake of this example, we’re assuming the network is secured with WPA2 Personal.
 
@@ -127,20 +127,20 @@ In the [same repository you cloned before](https://github.com/chirp/chirp-alexa-
 
 Note that, in this demo, we’re not encrypting credentials so they are sent in plain text (as you can see from the Lambda function). This means that any devices that are in the hearing range will be able to hear and decode the credentials using a Chirp-enabled receiving device. For secure transmission, your credentials could be secured within your app with the addition of cryptography such as RSA or AES, along with a key that is unique to your client’s credentials.
 
-Before installing the app you have to download Chirp Android SDK from the [admin.chirp.io](https://admin.chirp.io). After downloading is finished, unzip the package, copy the *chirp-connect-release.aar* file in to the app/libs folder from the Chirp Wi-Fi Share Android client app.
+Before installing the app you have to download Chirp Android SDK from the [developers.chirp.io](https://developers.chirp.io). After downloading is finished, unzip the package, copy the *chirp-connect-release.aar* file in to the app/libs folder from the Chirp Wi-Fi Share Android client app.
 
 In order to install the client app, open the project in Android Studio, open “MainActivity.java”, update the Chirp credentials with your key and secret, and build the app on the phone.
 
 ```
 /*
-You can download licence string and credentials from your admin panel at admin.chirp.io
+You can download config string and credentials from your admin panel at developers.chirp.io
  */
 String KEY = "YOUR_APP_KEY";
 String SECRET = "YOUR_APP_SECRET";
-String LICENCE = "YOUR_APP_LICENCE";
+String CONFIG = "YOUR_APP_CONFIG_STRING";
 ```
 
-Once you start the app for the first time, you’ll see a pop-up window asking to accept “Audio Record” permissions. These are required forthe  Chirp SDK in order to listen for the credentials sent by Alexa. Please note that Chirp SDK is actually not recording anything —  the audio data from the microphone is processed in real-time and then discarded.
+Once you start the app for the first time, you’ll see a pop-up window asking to accept “Audio Record” permissions. These are required for the  Chirp SDK in order to listen for the credentials sent by Alexa. Please note that Chirp SDK is actually not recording anything —  the audio data from the microphone is processed in real-time and then discarded.
 
 Once you approve the permissions, click on the “Start Listening” button in order for the Chirp SDK to start listening for data. The status should change from “Idle” to “Listening”, and now you can go ahead and ask Alexa to send Wi-Fi credentials:
 

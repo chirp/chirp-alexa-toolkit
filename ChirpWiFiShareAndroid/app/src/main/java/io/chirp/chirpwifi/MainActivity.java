@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
         startStopListeningBtn.setAlpha(.4f);
         startStopListeningBtn.setClickable(false);
         /*
-        You can download config string and credentials from your admin panel at admin.chirp.io
+        You can download config string and credentials from your admin panel at developers.chirp.io
          */
         String KEY = "YOUR_APP_KEY";
         String SECRET = "YOUR_APP_SECRET";

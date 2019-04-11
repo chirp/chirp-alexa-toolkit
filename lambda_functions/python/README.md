@@ -9,7 +9,7 @@ APP_KEY, APP_SECRET, ALEXA_APP_ID, WIFI_SSID, WIFI_PASSWORD
 
 ### 2 - Install dependencies
 ```
-pip install -r requirements.txt -t ./
+pip3 install -r requirements.txt -t ./packages
 ```
 
 ### 3 - Zip files

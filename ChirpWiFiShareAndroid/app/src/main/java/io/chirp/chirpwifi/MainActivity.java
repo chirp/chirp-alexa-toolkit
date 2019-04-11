@@ -18,15 +18,15 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import org.jetbrains.annotations.NotNull;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 
 import io.chirp.connect.ChirpConnect;
 import io.chirp.connect.interfaces.ConnectEventListener;
-import io.chirp.connect.interfaces.ConnectSetConfigListener;
+import io.chirp.connect.models.ChirpConnectState;
 import io.chirp.connect.models.ChirpError;
-import io.chirp.connect.models.ConnectState;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -46,66 +46,49 @@ public class MainActivity extends AppCompatActivity {
         status = findViewById(R.id.status);
         startStopListeningBtn = findViewById(R.id.startStopListening);
         context = this;
-        startStopListeningBtn.setAlpha(.4f);
-        startStopListeningBtn.setClickable(false);
         /*
-        You can download config string and credentials from your admin panel at developers.chirp.io
+        You can download config string and credentials from the developer portal at developers.chirp.io
          */
         String KEY = "YOUR_APP_KEY";
         String SECRET = "YOUR_APP_SECRET";
         String CONFIG = "YOUR_APP_CONFIG_STRING";
 
         chirpConnect = new ChirpConnect(this, KEY, SECRET);
-        chirpConnect.setConfig(CONFIG, connectSetConfigListener);
+        chirpConnect.setConfig(CONFIG);
         chirpConnect.setListener(connectEventListener);
 
     }
 
-    ConnectSetConfigListener connectSetConfigListener = new ConnectSetConfigListener() {
-        @Override
-        public void onSuccess() {
-            //The config is successfully set, we can enable Start/Stop button now
-            startStopListeningBtn.setAlpha(1f);
-            startStopListeningBtn.setClickable(true);
-        }
-
-        @Override
-        public void onError(ChirpError setConfigError) {
-            Log.e("SetConfigError", setConfigError.getMessage());
-            setStatus("SetConfigError\n" + setConfigError.getMessage());
-        }
-    };
-
     ConnectEventListener connectEventListener = new ConnectEventListener() {
 
         @Override
-        public void onSending(byte[] payload, byte channel) {
+        public void onSending(@NotNull byte[] payload, int channel) {
             /**
              * onSending is called when a send event begins.
              * The data argument contains the payload being sent.
              */
             String hexData = "null";
             if (payload != null) {
-                hexData = chirpConnect.payloadToHexString(payload);
+                hexData = bytesToHexString(payload);
             }
             Log.v("connectdemoapp", "ConnectCallback: onSending: " + hexData + " on channel: " + channel);
         }
 
         @Override
-        public void onSent(byte[] payload, byte channel) {
+        public void onSent(byte[] payload, int channel) {
             /**
              * onSent is called when a send event has completed.
              * The data argument contains the payload that was sent.
              */
             String hexData = "null";
             if (payload != null) {
-                hexData = chirpConnect.payloadToHexString(payload);
+                hexData = bytesToHexString(payload);
             }
             Log.v("connectdemoapp", "ConnectCallback: onSent: " + hexData + " on channel: " + channel);
         }
 
         @Override
-        public void onReceiving(byte channel) {
+        public void onReceiving(int channel) {
             /**
              * onReceiving is called when a receive event begins.
              * No data has yet been received.
@@ -115,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onReceived(byte[] payload, byte channel) {
+        public void onReceived(byte[] payload, int channel) {
             /**
              * onReceived is called when a receive event has completed.
              * If the payload was decoded successfully, it is passed in data.
@@ -123,7 +106,7 @@ public class MainActivity extends AppCompatActivity {
              */
             String hexData = "null";
             if (payload != null) {
-                hexData = chirpConnect.payloadToHexString(payload);
+                hexData = bytesToHexString(payload);
             }
             Log.v("connectdemoapp", "ConnectCallback: onReceived: " + hexData + " on channel: " + channel);
 
@@ -141,13 +124,12 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onStateChanged(byte oldState, byte newState) {
+        public void onStateChanged(int oldState, int newState) {
             /**
              * onStateChanged is called when the SDK changes state.
              */
             Log.v("connectdemoapp", "ConnectCallback: onStateChanged " + oldState + " -> " + newState);
-            ConnectState state = ConnectState.createConnectState(newState);
-            if (state == ConnectState.AudioStateRunning) {
+            if (newState == ChirpConnectState.CHIRP_CONNECT_STATE_RUNNING.getCode()) {
                 setStatus("Listening...");
             }
 
@@ -166,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startStopListening(View view) {
-        if (chirpConnect.getConnectState() == ConnectState.AudioStateStopped) {
+        if (chirpConnect.getState() == ChirpConnectState.CHIRP_CONNECT_STATE_STOPPED) {
             ChirpError startError = chirpConnect.start();
             if (startError.getCode() > 0) {
                 Log.d("startStopListening", startError.getMessage());
@@ -235,6 +217,18 @@ public class MainActivity extends AppCompatActivity {
         };
         handler.postDelayed(r, 1000);
     }
+
+    private final static char[] hexArray = "0123456789abcdef".toCharArray();
+    public static String bytesToHexString(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
 
     @Override
     protected void onResume() {

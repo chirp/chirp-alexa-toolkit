@@ -1,17 +1,19 @@
-const Alexa = require('alexa-sdk');
+const Alexa = require('ask-sdk-core');
+const request = require('request');
 
 /**
 * Chirp Credentials and Alexa application ID
 **/
-const APP_KEY = 'MY_APP_KEY';
-const APP_SECRET = 'MY_APP_SECRET';
-const ALEXA_APP_ID = 'MY_ALEXA_APP_ID';
+const APP_KEY = '';
+const APP_SECRET = '';
+const ALEXA_APP_ID = '';
+const CHIRP_API_AUTH = 'https://'+APP_KEY+':'+APP_SECRET+'@auth.chirp.io/v3/connect/token'
 
 /**
  * WiFi Credentials
  */
-const WIFI_SSID = 'MY_WIFI_SSID';
-const WIFI_PASSWORD = 'MY_WIFI_PASSWORD';
+const WIFI_SSID = '';
+const WIFI_PASSWORD = '';
 
 function hexEncode(utf8String) {
     var hex, i;
@@ -29,29 +31,58 @@ function buildCredentialsPayload(ssid, passwd) {
     return hexEncode(ssid + ":" + passwd);
 }
 
-const handlers = {
-    'connectToWiFi' : function() {
-        //build response first using responseBuilder and then emit
-        const speechOutput = 'Check it out!';
-        const behavior = 'REPLACE_ALL';
-        const token = buildCredentialsPayload(WIFI_SSID, WIFI_PASSWORD);
-        const url = 'https://'+APP_KEY+':'+APP_SECRET+'@audio.chirp.io/v3/default/' + token;
-        const expectedPreviousToken = null;
-        const offsetInMilliseconds = 0;
-        this.response.speak(speechOutput)
-                    .audioPlayerPlay(behavior, url, token, expectedPreviousToken, offsetInMilliseconds);
-        this.emit(':responseReady');
-    },
-    'Unhandled': function() {
-        this.response.speak('What do you want me to do with chirp connect?')
-                    .listen('Sorry, I didn\'t get that. Try asking chirp connect to send wi-fi credentials.');
-        this.emit(':responseReady');
-    }
+const ConnectToWiFiIntentHandler = {
+  canHandle(handlerInput) {
+    return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+      && handlerInput.requestEnvelope.request.intent.name === 'connectToWiFi';
+  },
+  handle(handlerInput) {
+    return new Promise((resolve, reject) => {
+      request({url: CHIRP_API_AUTH}, function (error, response_status, body) {
+        body = JSON.parse(body)
+        const responseBuilder = handlerInput.responseBuilder
+        if (!body.token) {
+          responseBuilder
+            .speak('Sorry. I am unable to authenticate for Chirp API!')
+            .withSimpleCard('Failed to send WiFi credentials!', 'Unable to authenticate for Chirp API!');
+
+        } else {
+          const wiFiToken = buildCredentialsPayload(WIFI_SSID, WIFI_PASSWORD);
+          const url = 'https://audio.chirp.io/v3/default/' + wiFiToken + "?token="+body.token;
+          responseBuilder
+            .speak('Check it out!')
+            .withSimpleCard('Check it out!', 'Credentials are being sent.')
+            .addAudioPlayerPlayDirective('REPLACE_ALL', url, wiFiToken, 0);
+        }
+        resolve(responseBuilder.getResponse())
+      });
+    })
+  }
 };
 
-exports.handler = function(event, context, callback) {
-    const alexa = Alexa.handler(event, context, callback);
-    alexa.appId = ALEXA_APP_ID; // ALEXA_APP_ID is your skill id which can be found in the Amazon developer console where you create the skill.
-    alexa.registerHandlers(handlers);
-    alexa.execute();
+const ErrorHandler = {
+  canHandle() {
+    return true;
+  },
+  handle(handlerInput, error) {
+
+    return handlerInput.responseBuilder
+      .speak("Sorry, I didn't get it. Can you please say it again!!")
+      .reprompt("Sorry, I didn't get it. Can you please say it again!!")
+      .getResponse();
+  },
+};
+
+exports.handler = async function (event, context) {
+
+  skill = Alexa.SkillBuilders.custom()
+    .addRequestHandlers(
+      ConnectToWiFiIntentHandler
+    )
+    .addErrorHandlers(ErrorHandler)
+    .create();
+
+  const response = await skill.invoke(event, context);
+
+  return response;
 };

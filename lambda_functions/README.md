@@ -2,8 +2,8 @@
 
 ## Usage
 Each of the platforms contains a file with a function that is designed to be used on lambda.
-To use these functions on lambda you need to create a zip folder which contains the function file 
-in the root folder and a all the dependencies. 
+To use these functions on lambda you need to create a zip folder which contains the function file
+in the root folder and a all the dependencies.
 
 
 ### Create a build zip file

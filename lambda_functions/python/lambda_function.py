@@ -1,4 +1,20 @@
-import codecs
+#Make python to look for dependencies in packages folder
+import sys
+sys.path.insert(0, './packages')
+
+#import dependencies
+import codecs, requests
+from ask_sdk_core.skill_builder import SkillBuilder
+from ask_sdk_core.dispatch_components import AbstractRequestHandler
+from ask_sdk_core.utils import is_request_type, is_intent_name
+from ask_sdk_core.handler_input import HandlerInput
+from ask_sdk_model import Response
+from ask_sdk_model.interfaces.audioplayer import PlayDirective, AudioItem, Stream
+from ask_sdk_model.ui import SimpleCard, PlayBehavior
+from ask_sdk_core.dispatch_components import AbstractExceptionHandler
+
+sb = SkillBuilder()
+
 
 # Chirp Credentials and Alexa application ID
 APP_KEY = "MY_APP_KEY"
@@ -9,82 +25,63 @@ ALEXA_APP_ID = "MY_APP_ID"
 WIFI_SSID = "MY_WIFI_SSID"
 WIFI_PASSWORD = "MY_WIFI_PASSWORD"
 
+# --------------- Authenticate to ChirpAudioAPI ----------------------
+# This will return a short lime living token that we can use to play audio file. After 30s it will expire.
+def authenticate() -> Response:
+    url = 'https://auth.chirp.io/v3/connect/token'
+    return requests.get(url, auth=(APP_KEY, APP_SECRET))
 
-# --------------- Helpers that build the response responses ----------------------
-# OutputSpeech object is used for setting both the outputSpeech and the re-prompt properties.
-def build_output_speech(text=""):
-    return {
-            "type": "SSML",
-            "ssml": "<speak>" + text + "</speak>"
-        }
+class ConnectToWiFiIntentHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        return is_intent_name("connectToWiFi")(handler_input)
 
+    def handle(self, handler_input) -> Response:
 
-# Card object containing a card to render to the Amazon Alexa App.
-def build_card(type="Simple", title="", content=""):
-    return {
-            "type": type,
-            "title": title,
-            "content": content
-        }
+        auth_response = authenticate()
 
+        if auth_response.status_code != 200:
+            handler_input.response_builder.speak("Sorry. I am unable to authenticate for Chirp API!").set_card(
+                SimpleCard("Failed to send WiFi credentials!", "Unable to authenticate for Chirp API!"))\
+                .set_should_end_session(True)
+        else:
+            speech_text = "Check it out!"
+            auth_token = auth_response.json()['token']
 
-# A directive is specifying device-level actions to take using a particular interface, such as the AudioPlayer interface
-# AudioPlayer.Play is a directive that
-# sends Alexa a command to stream the audio file identified by the specified audioItem.
-def build_play_directive(playBehavior="REPLACE_ALL", url="", stream_token="identifier"):
-    return {
-        "type": "AudioPlayer.Play",
-        "playBehavior": playBehavior,
-        "audioItem": {
-          "stream": {
-            "url": url,
-            "token": stream_token,
-            "offsetInMilliseconds": 0
-          }
-        }
-      }
+            payload = (WIFI_SSID + ":" + WIFI_PASSWORD).encode()
+            hex_payload = codecs.encode(payload, 'hex-codec').decode()
+            # This endpoint will play the payload with the default protocol of your application
+            # https://audio.chirp.io/v3/default
+            # See more details about Chirp API at https://developers.chirp.io/connect/getting-started/audio-api/
+            audio_url = "https://audio.chirp.io/v3/default/" + hex_payload + "?token=" + auth_token
 
+            handler_input.response_builder.speak(speech_text).set_card(
+                SimpleCard(speech_text, "Credentials are being sent.")).add_directive(
+                    PlayDirective(
+                        play_behavior=PlayBehavior.REPLACE_ALL,
+                        audio_item=AudioItem(
+                            stream=Stream(
+                                token=auth_token,
+                                url=audio_url,
+                                offset_in_milliseconds=0,
+                                expected_previous_token=None)))
+            ).set_should_end_session(True)
 
-def build_response(session_attributes={}, output_speech={}, card={}, directives=[], shouldEndSession=True):
-    return {
-        "version": "1.0",
-        "sessionAttributes": session_attributes,
-        "response": {
-            "outputSpeech": output_speech,
-            "card": card,
-            "directives": directives,
-            "shouldEndSession": shouldEndSession
-        }
-    }
+        return handler_input.response_builder.response
 
+class AllExceptionHandler(AbstractExceptionHandler):
 
-# --------------- Handler function that is triggered by Alexa ----------------------
-def lambda_handler(event, context):
-    intent_request = event["request"]
-    session = event["session"]
-    application_id = session["application"]["applicationId"]
-    intent_name = intent_request["intent"]["name"]
+    def can_handle(self, handler_input, exception):
+        # type: (HandlerInput, Exception) -> bool
+        return True
 
-    if application_id != ALEXA_APP_ID:
-        raise ValueError("Invalid application")
+    def handle(self, handler_input, exception):
+        # type: (HandlerInput, Exception) -> Response
 
-    if intent_name != "connectToWiFi":
-        raise ValueError("Invalid intent")
+        speech = "Sorry, I didn't get it. Can you please say it again!!"
+        handler_input.response_builder.speak(speech).ask(speech)
+        return handler_input.response_builder.response
 
-    output_speech = build_output_speech(text="Check it out!")
-    card = build_card(title="Chirp Connect sending WiFi credentials",
-                      content="Chirp Connect sending WiFi credentials to " + WIFI_SSID + ".")
+sb.add_request_handler(ConnectToWiFiIntentHandler())
+sb.add_exception_handler(AllExceptionHandler())
 
-    payload = (WIFI_SSID + ":" + WIFI_PASSWORD).encode()
-    hex_payload = codecs.encode(payload, 'hex-codec').decode()
-    # This endpoint will play the payload with the default protocol of your application
-    # https://audio.chirp.io/v3/default
-    # See more details about Chirp API at https://developers.chirp.io/connect/getting-started/audio-api/
-    audio_url = "https://"+APP_KEY+":"+APP_SECRET+"@audio.chirp.io/v3/default/"+hex_payload
-    directives = [
-        build_play_directive(url=audio_url, stream_token=hex_payload)
-    ]
-    return build_response(
-        output_speech=output_speech,
-        card=card,
-        directives=directives)
+handler = sb.lambda_handler()

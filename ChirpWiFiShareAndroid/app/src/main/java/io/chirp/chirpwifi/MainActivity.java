@@ -49,12 +49,12 @@ public class MainActivity extends AppCompatActivity {
         /*
         You can download config string and credentials from the developer portal at developers.chirp.io
          */
-        String KEY = "YOUR_APP_KEY";
-        String SECRET = "YOUR_APP_SECRET";
-        String CONFIG = "YOUR_APP_CONFIG_STRING";
+        String CHIRP_APP_KEY = "YOUR_APP_KEY";
+        String CHIRP_APP_SECRET = "YOUR_APP_SECRET";
+        String CHIRP_APP_CONFIG = "YOUR_APP_CONFIG_STRING";
 
-        chirpConnect = new ChirpConnect(this, KEY, SECRET);
-        chirpConnect.setConfig(CONFIG);
+        chirpConnect = new ChirpConnect(this, CHIRP_APP_KEY, CHIRP_APP_SECRET);
+        chirpConnect.setConfig(CHIRP_APP_CONFIG);
         chirpConnect.setListener(connectEventListener);
 
     }
